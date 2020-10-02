@@ -1,18 +1,18 @@
 import speech_recognition as sr # recognise speech
 import playsound # to play an audio file
-from gtts import gTTS # google text to speech
+#from gtts import gTTS # google text to speech
 import random
 from time import ctime # get time details
 import datetime
 import webbrowser # open browser
-import yfinance as yf # to fetch financial data
+#import yfinance as yf # to fetch financial data
 import ssl
 import certifi
 import time
 import os # to remove created audio files
 from wit import Wit
 import requests, json 
-import wolframalpha
+#import wolframalpha
 import pyttsx3
 import wikipedia
 import webbrowser
@@ -29,7 +29,7 @@ r = sr.Recognizer()
 
 #listen for auio and convert it to text:
 def record_audio(ask=False):
-    speech_key, service_region = "230098c966b241be92d0ac8d1fa5acf1", "eastus"
+    speech_key, service_region = "61b8a438ab6e4afa8d7496ab6982d4e3", "eastus"
     speech_config = speechsdk.SpeechConfig(subscription=speech_key, region=service_region)
 
     speech_recognizer = speechsdk.SpeechRecognizer(speech_config=speech_config)
@@ -65,7 +65,7 @@ def speak(audio_string):
 
 #WIT.AI
 def ai(voice_data):
-    access_token = "3NHY2YKZOBXCECKLJL3TB672XIRTKN4H"
+    access_token = "4QKSOGCQXLBPF6LHFD2R4YRETJ24NF5H"
     client = Wit(access_token = access_token)
     response = client.message(voice_data)
     print(response)
@@ -156,7 +156,7 @@ def weather_API (city_name):
     
 
 def Skills(response):
-    #print('response is ', response)
+    print('response is ', response)
     y = response["intents"]
     intent = y[0]["name"]
     print("intent is " + intent)
