@@ -17,7 +17,8 @@ import pyttsx3
 import wikipedia
 import webbrowser
 import azure.cognitiveservices.speech as speechsdk
-
+import mysql.connector
+from mysql.connector import errorcode
 
 def there_exists(terms):
     for term in terms:
@@ -215,25 +216,37 @@ def Skills(response):
         print(d)
         print(time)
 
-        with open("schedule.txt", "r") as f:
-            lines = f.readlines()
-            
-            day = []
-            course = []
-            time = []
-            
-            for l in lines:
-                li = l.split(",")
-                day.append(li[0])
-                course.append(li[1])
-                time.append(li[2].replace("\n", ""))
-            
-        
-        days = d
-        
-        ind = day.index(days)
-        
-        speak("You have " + course[ind] + " class on " + days + " at " + time[ind])
+        config = {
+        'host':'rvaschedule.mysql.database.azure.com',
+        'user':'rvaschedule@rvaschedule',
+        'password':'RVA2020!',
+        'database':'rocket'
+        }
+
+        # Construct connection string
+        try:
+            conn = mysql.connector.connect(**config)
+            print("Connection established")
+        except mysql.connector.Error as err:
+            if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+                print("Something is wrong with the user name or password")
+            elif err.errno == errorcode.ER_BAD_DB_ERROR:
+                print("Database does not exist")
+            else:
+                print(err)
+        else:
+            cursor = conn.cursor()
+
+        cursor.execute("SELECT * FROM class where weekday="+ "'" + d+ "'")
+        myresult = cursor.fetchall()
+        print(myresult)
+        for row in myresult:
+            day = row[1]
+            start = row[2]
+            end = row[3]
+            course = row[4]
+              
+        speak("You have " + course + " class on " + day + " at " + str(start))
        
 
     #
