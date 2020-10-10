@@ -1,18 +1,17 @@
+
 import speech_recognition as sr # recognise speech
-import playsound # to play an audio file
-#from gtts import gTTS # google text to speech
+from gtts import gTTS # google text to speech
 import random
 from time import ctime # get time details
 import datetime
 import webbrowser # open browser
-#import yfinance as yf # to fetch financial data
 import ssl
 import certifi
 import time
 import os # to remove created audio files
 from wit import Wit
 import requests, json 
-#import wolframalpha
+import wolframalpha
 import pyttsx3
 import wikipedia
 import webbrowser
@@ -20,13 +19,6 @@ import azure.cognitiveservices.speech as speechsdk
 import mysql.connector
 from mysql.connector import errorcode
 
-def there_exists(terms):
-    for term in terms:
-        if term in voice_data:
-            return True
-
-#initialise a recogniser
-r = sr.Recognizer()
 
 #listen for auio and convert it to text:
 def record_audio(ask=False):
@@ -66,39 +58,53 @@ def speak(audio_string):
 
 #WIT.AI
 def ai(voice_data):
-    access_token = "4QKSOGCQXLBPF6LHFD2R4YRETJ24NF5H"
-    client = Wit(access_token = access_token)
-    response = client.message(voice_data)
-    print(response)
-    return response  
+    try:
 
-def first_entity_value(entities, entity):
+        appId = '28efab5b-8c7e-49bd-8582-84d8152f792b'
+
+        prediction_key = '5c7fba2628cc498d985d95141263659c'
+
+        prediction_endpoint = 'https://rocket.cognitiveservices.azure.com/'
+
+        # The utterance you want to use.
+        utterance = voice_data
+
+        # The headers to use in this REST call.
+        headers = {
+        }
+
+        # The URL parameters to use in this REST call.
+        params ={
+            'query': utterance,
+            'timezoneOffset': '0',
+            'verbose': 'true',
+            'show-all-intents': 'true',
+            'spellCheck': 'false',
+            'staging': 'false',
+            'subscription-key': prediction_key
+        }
+
+        # Make the REST call.
+        response = requests.get(f'{prediction_endpoint}luis/prediction/v3.0/apps/{appId}/slots/production/predict', headers=headers, params=params)
+        # Display the results on the console.
+        x= response.json()["prediction"]
+        print(x)
+   
+    except Exception as e:
+        # Display the error string.
+        print(f'{e}')
+
+    return response.json()["prediction"]
+
+
+def first_entity(entities, entity):
     if entity not in entities:
-        return None
-    val = entities[entity][0]
-    if not val:
-        return None
-    return val
+        ent = None
+    else:
+        ent = entities[entity][0]
 
-def first_entity_resolved_value(entities, entity):
-    if entity not in entities:
-        return None
-    val = entities[entity][0]
-    if 'resolved' not in val:
-        return None
-    val = val['resolved']['values'][0]
-    if not val:
-        return None
-    return val
+    return ent
 
-
-def first_trait_value(traits, trait):
-    if trait not in traits:
-        return None
-    val = traits[trait][0]['value']
-    if not val:
-        return None
-    return val
 
 #WolframAlpha API
 def wolframAlpha_API (question):
@@ -156,10 +162,10 @@ def weather_API (city_name):
 
     
 
+
 def Skills(response):
-    print('response is ', response)
-    y = response["intents"]
-    intent = y[0]["name"]
+    #print('response is ', response)
+    intent = response["topIntent"]
     print("intent is " + intent)
 
 #trait = first_trait_value(response['traits'], 'wit$greetings')
@@ -168,42 +174,35 @@ def Skills(response):
 # Entities clarify the characteristics of a given intent, e.g., the time and place of a user
    
     #
-    if (intent == "weather"):
-        entity = first_entity_resolved_value(response['entities'], 'wit$location:location')
+    if (intent == "get_weather"):
+        entity = first_entity(response["entities"], 'location')
         print("print(entity)", entity)
         if (entity == None):
             speak("What is the city name")
             response = ai(record_audio())
-            entity = first_entity_resolved_value(response['entities'], 'wit$location:location')["name"]
+            entity = first_entity(response['entities'], 'location')
             print("print(entity)", entity)
             speak(weather_API(entity))
         else:
-            entity = first_entity_resolved_value(response['entities'], 'wit$location:location')["name"]
+            #entity = first_entity_resolved_value(response['entities'], 'wit$location:location')["name"]
             speak(weather_API(entity))
 
+    
+    #elif (intent == "math"):
+       
+    
     #
-    elif (intent == "math"):
-        entity = first_entity_value(response['entities'], 'wit$math_expression:math_expression')["body"]
-        print(entity)
-        speak(entity + " = " + wolframAlpha_API(entity))
-
-    #
-    elif (intent == "time"):
+    elif (intent == "get_time"):
         strTime = datetime.datetime.now().strftime("%H:%M:%S")
         speak(strTime)
 
-    #
-    elif (intent == "wikipedia"):
-        statement =  first_entity_value(response['entities'], 'wit$wikipedia_search_query:wikipedia_search_query')["body"]
- 
-        results = wikipedia.summary(statement, sentences=3)
-        speak("According to Wikipedia " + results)
+    
+    #elif (intent == "wikipedia"):
+        
 
-    #
-    elif (intent == "search"):
-        statement = first_entity_value(response['entities'])
-
-        print(response['text'])
+    
+    #elif (intent == "search"):
+        
 
     #
     # speak("I am rockets. I created by UT student. ")
@@ -211,8 +210,8 @@ def Skills(response):
 
 
     elif (intent == "get_schedule"):
-        d = first_entity_value(response['entities'], 'wit_date:wit_date')["body"]
-        time = first_entity_value(response['entities'], 'wit_time:wit_time')["body"]
+        d = first_entity(response['entities'], 'weekday')
+        time = first_entity(response['entities'], 'time')
         print(d)
         print(time)
 
@@ -255,9 +254,14 @@ def Skills(response):
         exit()
 
 
+
+
+
+
 speak("Hello, how may I help you")
 while(1):
     
     voice_data = record_audio()
     response = ai(voice_data)
     Skills(response)
+    
