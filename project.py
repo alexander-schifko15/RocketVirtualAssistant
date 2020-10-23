@@ -1,4 +1,5 @@
 
+
 import speech_recognition as sr # recognise speech
 from gtts import gTTS # google text to speech
 import random
@@ -8,6 +9,7 @@ import webbrowser # open browser
 import ssl
 import certifi
 import time
+import datetime
 import os # to remove created audio files
 from wit import Wit
 import requests, json 
@@ -45,18 +47,12 @@ def record_audio(ask=False):
 
 #get string and make a audio file to be played
 def speak(audio_string):
-#   tts = gTTS(text=audio_string, lang='en') #text to speech    
-#    audio_file = 'audio' + '.mp3'
-#    tts.save(audio_file) # save as mp3
-#    playsound.playsound(audio_file) # play the audio file
-#    print(f"Rocket: {audio_string}") # print what app said
-#    os.remove(audio_file) # remove audio file
     engine = pyttsx3.init()
     engine.say(audio_string)
     print(f"Rocket: {audio_string}")
     engine.runAndWait()
 
-#WIT.AI
+#LUIS
 def ai(voice_data):
     try:
 
@@ -193,7 +189,7 @@ def Skills(response):
     
     #
     elif (intent == "get_time"):
-        strTime = datetime.datetime.now().strftime("%H:%M:%S")
+        strTime = datetime.datetime.now().strftime("%I:%M %p")
         speak(strTime)
 
     
@@ -210,11 +206,13 @@ def Skills(response):
 
 
     elif (intent == "get_schedule"):
-        d = first_entity(response['entities'], 'weekday')
+        day = first_entity(response['entities'], 'weekday')
         time = first_entity(response['entities'], 'time')
-        print(d)
+        print(day)
         print(time)
 
+
+        # Connect database
         config = {
         'host':'rvaschedule.mysql.database.azure.com',
         'user':'rvaschedule@rvaschedule',
@@ -236,24 +234,63 @@ def Skills(response):
         else:
             cursor = conn.cursor()
 
-        cursor.execute("SELECT * FROM class where weekday="+ "'" + d+ "'")
-        myresult = cursor.fetchall()
-        print(myresult)
-        for row in myresult:
-            day = row[1]
-            start = row[2]
-            end = row[3]
-            course = row[4]
-              
-        speak("You have " + course + " class on " + day + " at " + str(start))
-       
+        if(day != None and time != None):
+            if "pm" in time or "am" in time:
+                in_time = datetime.strptime(time, "%I:%M %p")
+                out_time = datetime.strftime(in_time, "%H:%M")
+                print(out_time)
+
+                cursor.execute("SELECT * FROM class where weekday="+ "'" + day + "' and start_time="+ "'" + out_time + "'" )
+                myresult = cursor.fetchall()
+                for row in myresult:
+                    weekday = row[1]
+                    start = row[2]
+                    end = row[3]
+                    course = row[4]
+
+                    speak("You have " + course + " class on " + weekday + " at " + start +" to " + end)
+        
+        else:
+            if(day == None):
+                today = datetime.date.today()
+                day = today.strftime("%A")
+
+            if(day == "tomorrow"):
+                tomorrow = datetime.date.today() + datetime.timedelta(days=1)
+                day = tomorrow.strftime("%A")
+           
+           
+            cursor.execute("SELECT * FROM class where weekday="+ "'" + day + "'")
+            myresult = cursor.fetchall()
+            print(myresult)
+            #print(myresult[0])
+            if not myresult:
+                speak("You don't have class on " + day)
+            for row in myresult:
+                weekday = row[1]
+                start = row[2]
+                end = row[3]
+                course = row[4]
+
+                speak("You have " + course + " class on " + weekday + " at " + start +" to " + end)
+
 
     #
     elif (intent == "goodbye"):
         speak("Take care")
         exit()
 
+    elif (intent == "HomeAutomation.TurnOff"):
+        speak("Turning off the "+ first_entity(response['entities'], 'HomeAutomation.DeviceType')[0])
 
+    elif (intent == "HomeAutomation.TurnOn"):
+        speak("Turning on the "+ first_entity(response['entities'], 'HomeAutomation.DeviceType')[0])
+
+    elif (intent == "HomeAutomation.TurnUp"):
+        speak("Turning up the " + first_entity(response['entities'], 'HomeAutomation.DeviceType')[0])
+
+    elif (intent == "HomeAutomation.TurnDown"):
+        speak("Turning down the "+ first_entity(response['entities'], 'HomeAutomation.DeviceType')[0])
 
 
 
