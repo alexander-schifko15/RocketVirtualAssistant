@@ -1,5 +1,4 @@
 
-
 import speech_recognition as sr # recognise speech
 from gtts import gTTS # google text to speech
 import random
@@ -236,8 +235,8 @@ def Skills(response):
 
         if(day != None and time != None):
             if "pm" in time or "am" in time:
-                in_time = datetime.strptime(time, "%I:%M %p")
-                out_time = datetime.strftime(in_time, "%H:%M")
+                in_time = datetime.datetime.strptime(time, "%I:%M %p")
+                out_time = datetime.datetime.strftime(in_time, "%H:%M")
                 print(out_time)
 
                 cursor.execute("SELECT * FROM class where weekday="+ "'" + day + "' and start_time="+ "'" + out_time + "'" )
@@ -247,9 +246,18 @@ def Skills(response):
                     start = row[2]
                     end = row[3]
                     course = row[4]
-
                     speak("You have " + course + " class on " + weekday + " at " + start +" to " + end)
-        
+            
+            if not myresult:
+                speak("You don't have class on " + day + " at " + out_time + " but")
+                cursor.execute("SELECT * FROM class where weekday="+ "'" + day + "'")
+                myresult = cursor.fetchall()
+                for row in myresult:
+                    weekday = row[1]
+                    start = row[2]
+                    end = row[3]
+                    course = row[4]
+                speak("You have " + course + " class on " + weekday + " at " + start +" to " + end)
         else:
             if(day == None):
                 today = datetime.date.today()
@@ -301,4 +309,4 @@ while(1):
     voice_data = record_audio()
     response = ai(voice_data)
     Skills(response)
-    
+  
