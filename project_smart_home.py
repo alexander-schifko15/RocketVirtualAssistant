@@ -97,7 +97,7 @@ def ai(voice_data):
         # Display the error string.
         print(f'{e}')
 
-    return response.json()["prediction"]
+    return response.json()
 
 
 def first_entity(entities, entity, querystate=False):
