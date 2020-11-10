@@ -261,6 +261,8 @@ def weather_API (city_name):
     
 
 def Skills(response):
+    text = response["query"]
+    response = response["prediction"]
     if response is None:
         speak("It was not clear. Please try again")
         exit()
