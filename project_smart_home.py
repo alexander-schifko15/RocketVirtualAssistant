@@ -315,10 +315,11 @@ def Skills(response):
     # speak("My favorite color is yellow and blue.")
 
     elif (intent == "get_schedule"):
-        d = first_entity(response['entities'], 'weekday')
+        day = first_entity(response['entities'], 'weekday')
         time = first_entity(response['entities'], 'time')
-        print(d)
+        print(day)
         print(time)
+
 
         # Connect database
         config = {
@@ -342,19 +343,56 @@ def Skills(response):
         else:
             cursor = conn.cursor()
 
-        cursor.execute("SELECT * FROM class where weekday="+ "'" + d+ "'")
-        myresult = cursor.fetchall()
-        print(myresult)
-        print(myresult[0])
-        if(myresult[0][1] == ""):
-            speak("You don't have class on " + d)
-        for row in myresult:
-            day = row[1]
-            start = row[2]
-            end = row[3]
-            course = row[4]
-              
-            speak("You have " + course + " class on " + day + " at " + str(start))
+        if(day != None and time != None):
+            if "pm" in time or "am" in time:
+                in_time = datetime.datetime.strptime(time, "%I:%M %p")
+                out_time = datetime.datetime.strftime(in_time, "%H:%M")
+                print(out_time)
+
+                cursor.execute("SELECT * FROM class where weekday="+ "'" + day + "' and start_time="+ "'" + out_time + "'" )
+                myresult = cursor.fetchall()
+                for row in myresult:
+                    weekday = row[1]
+                    start = row[2]
+                    end = row[3]
+                    course = row[4]
+                    speak("You have " + course + " class on " + weekday + " at " + start +" to " + end)
+            
+            if not myresult:
+                speak("You don't have class on " + day + " at " + out_time + " but")
+                cursor.execute("SELECT * FROM class where weekday="+ "'" + day + "'")
+                myresult = cursor.fetchall()
+                for row in myresult:
+                    weekday = row[1]
+                    start = row[2]
+                    end = row[3]
+                    course = row[4]
+                speak("You have " + course + " class on " + weekday + " at " + start +" to " + end)
+        else:
+            if(day == None):
+                today = datetime.date.today()
+                day = today.strftime("%A")
+
+            if(day == "tomorrow"):
+                tomorrow = datetime.date.today() + datetime.timedelta(days=1)
+                day = tomorrow.strftime("%A")
+           
+           
+            cursor.execute("SELECT * FROM class where weekday="+ "'" + day + "'")
+            myresult = cursor.fetchall()
+            print(myresult)
+            #print(myresult[0])
+            if not myresult:
+                speak("You don't have class on " + day)
+            for row in myresult:
+                weekday = row[1]
+                start = row[2]
+                end = row[3]
+                course = row[4]
+
+                speak("You have " + course + " class on " + weekday + " at " + start +" to " + end)
+
+
 
     elif (intent == "HomeAutomation.QueryState"):
 
