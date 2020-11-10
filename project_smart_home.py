@@ -201,12 +201,18 @@ def query_db(device):
 
 #WolframAlpha API
 def wolframAlpha_API (question):
-    app_id="JHKVPE-RAH5E7T86Q"
-    client = wolframalpha.Client('R2K75H-7ELALHR35X')
-    res = client.query(question)
-    answer = next(res.results).text
 
-    return answer
+    appid = "JHKVPE-RAH5E7T86Q"
+    base_url = "http://api.wolframalpha.com/v1/conversation.jsp?appid="
+
+    complete_url = base_url + appid + "&i=" + question
+
+    response = requests.get(complete_url)
+    x= response.json()
+            
+    print(x)
+
+    return x
 
 #Weather API
 #convert Kelvin to Fahrenheit
@@ -282,20 +288,24 @@ def Skills(response):
             speak(weather_API(entity))
 
     
-    #elif (intent == "math"):
+    elif (intent == "get_answer"):
+        
+        x = wolframAlpha_API(text)
+        
+        if "error" in x:
+            speak("Here is what I find in google")
+            url = "http://www.google.com/search?btnG=1&q=%s"
+            search = text
+            webbrowser.open(url % search)
+        else:
+            speak(x["result"])
+       
        
     
     #
     elif (intent == "get_time"):
         strTime = datetime.datetime.now().strftime("%H:%M:%S")
         speak(strTime)
-
-    
-    #elif (intent == "wikipedia"):
-        
-
-    
-    #elif (intent == "search"):
         
 
     #
