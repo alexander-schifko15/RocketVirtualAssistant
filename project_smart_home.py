@@ -50,7 +50,7 @@ def speak(audio_string):
 def ai(voice_data):
 
     try:
-        # @luis.ai
+        # Old app rocket @luis.ai
         """
         appId = '28efab5b-8c7e-49bd-8582-84d8152f792b'
         prediction_key = '5c7fba2628cc498d985d95141263659c'
@@ -97,7 +97,7 @@ def ai(voice_data):
         # Display the error string.
         print(f'{e}')
 
-    return response.json()
+    return response.json()["prediction"]
 
 
 def first_entity(entities, entity, querystate=False):
@@ -124,7 +124,7 @@ def update_db(device, state=None, value=None):
         'database':'homeautodb'
         }
 
-    # Construct connection string 
+    # Construct connection string
     try:
         conn = mysql.connector.connect(**config)
         print("Connection established")
@@ -137,7 +137,7 @@ def update_db(device, state=None, value=None):
             print("some other error : ", err)
     else:
         cursor = conn.cursor()
-        print("connected") 
+        print("connected")
 
     # Update a data row in the table
     if state is not None:
@@ -147,8 +147,15 @@ def update_db(device, state=None, value=None):
     
     if value is not None:
         # update state
-        cursor.execute("UPDATE devices SET value = value + %s WHERE name = %s;", (value, device))
-        print("Updated",cursor.rowcount,"row(s) of data.")       
+        if int(value) > 0:
+            cursor.execute("UPDATE devices SET value = value + %s WHERE name = %s;", (value, device))
+            print("Updated",cursor.rowcount,"row(s) of data.")  
+
+        else:
+            value = -1*value
+            cursor.execute("UPDATE devices SET value = value - %s WHERE name = %s;", (value, device))
+            print("Updated",cursor.rowcount,"row(s) of data.")  
+
 
     # Cleanup
     conn.commit()
@@ -201,18 +208,12 @@ def query_db(device):
 
 #WolframAlpha API
 def wolframAlpha_API (question):
+    app_id="JHKVPE-RAH5E7T86Q"
+    client = wolframalpha.Client('R2K75H-7ELALHR35X')
+    res = client.query(question)
+    answer = next(res.results).text
 
-    appid = "JHKVPE-RAH5E7T86Q"
-    base_url = "http://api.wolframalpha.com/v1/conversation.jsp?appid="
-
-    complete_url = base_url + appid + "&i=" + question
-
-    response = requests.get(complete_url)
-    x= response.json()
-            
-    print(x)
-
-    return x
+    return answer
 
 #Weather API
 #convert Kelvin to Fahrenheit
@@ -261,8 +262,6 @@ def weather_API (city_name):
     
 
 def Skills(response):
-    text = response["query"]
-    response = response["prediction"]
     if response is None:
         speak("It was not clear. Please try again")
         exit()
@@ -290,24 +289,20 @@ def Skills(response):
             speak(weather_API(entity))
 
     
-    elif (intent == "get_answer"):
-        
-        x = wolframAlpha_API(text)
-        
-        if "error" in x:
-            speak("Here is what I find in google")
-            url = "http://www.google.com/search?btnG=1&q=%s"
-            search = text
-            webbrowser.open(url % search)
-        else:
-            speak(x["result"])
-       
+    #elif (intent == "math"):
        
     
     #
     elif (intent == "get_time"):
         strTime = datetime.datetime.now().strftime("%H:%M:%S")
         speak(strTime)
+
+    
+    #elif (intent == "wikipedia"):
+        
+
+    
+    #elif (intent == "search"):
         
 
     #
@@ -315,11 +310,10 @@ def Skills(response):
     # speak("My favorite color is yellow and blue.")
 
     elif (intent == "get_schedule"):
-        day = first_entity(response['entities'], 'weekday')
+        d = first_entity(response['entities'], 'weekday')
         time = first_entity(response['entities'], 'time')
-        print(day)
+        print(d)
         print(time)
-
 
         # Connect database
         config = {
@@ -343,56 +337,19 @@ def Skills(response):
         else:
             cursor = conn.cursor()
 
-        if(day != None and time != None):
-            if "pm" in time or "am" in time:
-                in_time = datetime.datetime.strptime(time, "%I:%M %p")
-                out_time = datetime.datetime.strftime(in_time, "%H:%M")
-                print(out_time)
-
-                cursor.execute("SELECT * FROM class where weekday="+ "'" + day + "' and start_time="+ "'" + out_time + "'" )
-                myresult = cursor.fetchall()
-                for row in myresult:
-                    weekday = row[1]
-                    start = row[2]
-                    end = row[3]
-                    course = row[4]
-                    speak("You have " + course + " class on " + weekday + " at " + start +" to " + end)
-            
-            if not myresult:
-                speak("You don't have class on " + day + " at " + out_time + " but")
-                cursor.execute("SELECT * FROM class where weekday="+ "'" + day + "'")
-                myresult = cursor.fetchall()
-                for row in myresult:
-                    weekday = row[1]
-                    start = row[2]
-                    end = row[3]
-                    course = row[4]
-                speak("You have " + course + " class on " + weekday + " at " + start +" to " + end)
-        else:
-            if(day == None):
-                today = datetime.date.today()
-                day = today.strftime("%A")
-
-            if(day == "tomorrow"):
-                tomorrow = datetime.date.today() + datetime.timedelta(days=1)
-                day = tomorrow.strftime("%A")
-           
-           
-            cursor.execute("SELECT * FROM class where weekday="+ "'" + day + "'")
-            myresult = cursor.fetchall()
-            print(myresult)
-            #print(myresult[0])
-            if not myresult:
-                speak("You don't have class on " + day)
-            for row in myresult:
-                weekday = row[1]
-                start = row[2]
-                end = row[3]
-                course = row[4]
-
-                speak("You have " + course + " class on " + weekday + " at " + start +" to " + end)
-
-
+        cursor.execute("SELECT * FROM class where weekday="+ "'" + d+ "'")
+        myresult = cursor.fetchall()
+        print(myresult)
+        print(myresult[0])
+        if(myresult[0][1] == ""):
+            speak("You don't have class on " + d)
+        for row in myresult:
+            day = row[1]
+            start = row[2]
+            end = row[3]
+            course = row[4]
+              
+            speak("You have " + course + " class on " + day + " at " + str(start))
 
     elif (intent == "HomeAutomation.QueryState"):
 
@@ -437,9 +394,9 @@ def Skills(response):
 
         #turning down the settings and update it in the database
         device = first_entity(response['entities'], 'HomeAutomation.DeviceType')[0]
-        value = get_value(response)
-        update_db(device=device, value=value)
-        speak("Turning down the {} by {} degrees".format(device, (-1)*value))
+        value = int(get_value(response))
+        update_db(device=device, value=-1*value)
+        speak("Turning down the {} by {} degrees".format(device, value))
 
     elif (intent == "goodbye"):
         speak("Take care")
@@ -457,9 +414,9 @@ while(1):
 
 """
 
-#voice_data = 'turn the ac to 30 degree'
-#voice_data = 'increase the ac by 10 degrees'
-voice_data = 'what is the room temperature'
+#voice_data = 'turn the ac to 30 degree'#
+#voice_data = 'decrease the ac by 10 degrees'
+#voice_data = 'what is the room temperature'
 #voice_data = 'what is weather?'
 #voice_data = 'what class do i have on wednesday'
 response = ai(voice_data)
