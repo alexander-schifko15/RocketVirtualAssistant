@@ -1,18 +1,13 @@
-import speech_recognition as sr # recognise speech
-from gtts import gTTS # google text to speech
+
 import random
 from time import ctime # get time details
 import datetime
 import webbrowser # open browser
 import ssl
-import certifi
 import time
 import os # to remove created audio files
-from wit import Wit
 import requests, json 
 import wolframalpha
-import pyttsx3
-import wikipedia
 import webbrowser
 import azure.cognitiveservices.speech as speechsdk
 import mysql.connector
@@ -462,22 +457,29 @@ def Skills(response):
         update_db(device=device, value=value)
         speak("Turning down the {} by {} degrees".format(device, (-1)*value))
 
+    elif (intent == None):
+        speak("I didn't understand that. Could you repeat the question?")
+
+
     elif (intent == "goodbye"):
-        speak("Take care")
+        speak("Ok, Take care")
         exit()
 
     speak("Do you need any other help")
 
 
+#Start the program
 speak("Hello, how may I help you")
 while(1):
     
     voice_data = record_audio()
     response = ai(voice_data)
-    Skills(response)
+    if (response == None):
+        exit()
+    else:
+        Skills(response)
 
 """
-
 #voice_data = 'turn the ac to 30 degree'
 #voice_data = 'increase the ac by 10 degrees'
 voice_data = 'what is the room temperature'
