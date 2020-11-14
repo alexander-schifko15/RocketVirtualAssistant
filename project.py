@@ -1,4 +1,3 @@
-
 import random
 from time import ctime # get time details
 import datetime
@@ -505,9 +504,10 @@ def Skills(response):
 
         #turning down the settings and update it in the database
         device = first_entity(response['entities'], 'HomeAutomation.DeviceType')[0]
-        value = get_value(response)
-        update_db(device=device, value=value)
-        speak("Turning down the {} by {} degrees".format(device, (-1)*value))
+        value = int(get_value(response))
+        update_db(device=device, value=-1*value)
+        speak("Turning down the {} by {} degrees".format(device, value))
+
 
     elif (intent == None):
         speak("I didn't understand that. Could you repeat the question?")
