@@ -1,18 +1,11 @@
-import speech_recognition as sr # recognise speech
-from gtts import gTTS # google text to speech
-import random
+
 from time import ctime # get time details
 import datetime
 import webbrowser # open browser
-import ssl
-import certifi
 import time
-import os # to remove created audio files
-from wit import Wit
 import requests, json 
 import wolframalpha
 import pyttsx3
-import wikipedia
 import webbrowser
 import azure.cognitiveservices.speech as speechsdk
 import mysql.connector
