@@ -451,7 +451,7 @@ def mainroot():
         elif (intent == "get_translation"):
             translate_speech_to_text()
 
-	elif (intent == "search")
+	elif (intent == "search"):
             speak("What do you want to search?")
             response = ai(record_audio())
             text = response["query"]
