@@ -1,24 +1,15 @@
-import speech_recognition as sr # recognise speech
-from gtts import gTTS # google text to speech
-import random
 from time import ctime # get time details
 import datetime
 import webbrowser # open browser
-import ssl
-import certifi
 import time
-import os # to remove created audio files
-from wit import Wit
 import requests, json 
 import wolframalpha
 import pyttsx3
-import wikipedia
 import webbrowser
 import azure.cognitiveservices.speech as speechsdk
 import mysql.connector
 from mysql.connector import errorcode
 from tkinter import *
-import datetime
 from PIL import ImageTk,Image
 import sqlite3
 from tkinter import messagebox
@@ -181,14 +172,14 @@ def mainroot():
         #response = requests.get(f'{prediction_endpoint}luis/prediction/v3.0/apps/{appId}/slots/production/predict', headers=headers, params=params)
         
         # Display the results on the console.
-            x = response.json()["prediction"]
+            x = response.json()
             print(x)
    
         except Exception as e:
             # Display the error string.
             print(f'{e}')
 
-        return response.json()["prediction"]
+        return response.json()
 
 
     def first_entity(entities, entity, querystate=False):
@@ -299,12 +290,17 @@ def mainroot():
 
     #WolframAlpha API
     def wolframAlpha_API (question):
-        app_id="JHKVPE-RAH5E7T86Q"
-        client = wolframalpha.Client('R2K75H-7ELALHR35X')
-        res = client.query(question)
-        answer = next(res.results).text
+        appid = "JHKVPE-RAH5E7T86Q"
+        base_url = "http://api.wolframalpha.com/v1/conversation.jsp?appid="
 
-        return answer
+        complete_url = base_url + appid + "&i=" + question
+
+        response = requests.get(complete_url)
+        x= response.json()
+                
+        print(x)
+
+        return x
 
     #Weather API
     #convert Kelvin to Fahrenheit
@@ -353,6 +349,8 @@ def mainroot():
         
 
     def Skills(response):
+        text = response["query"]
+        response = response["prediction"]
         if response is None:
             speak("It was not clear. Please try again")
             exit()
@@ -378,9 +376,6 @@ def mainroot():
             else:
                 #entity = first_entity_resolved_value(response['entities'], 'wit$location:location')["name"]
                 speak(weather_API(entity))
-
-        
-        #elif (intent == "math"):
         
         
         #
@@ -388,23 +383,24 @@ def mainroot():
             strTime = datetime.datetime.now().strftime("%H:%M:%S")
             speak(strTime)
 
+        elif (intent == "get_answer"):
         
-        #elif (intent == "wikipedia"):
+            x = wolframAlpha_API(text)
             
-
-        
-        #elif (intent == "search"):
-            
-
-        #
-        # speak("I am rockets. I created by UT student. ")
-        # speak("My favorite color is yellow and blue.")
+            if "error" in x:
+                speak("Here is what I find in google")
+                url = "http://www.google.com/search?btnG=1&q=%s"
+                search = text
+                webbrowser.open(url % search)
+            else:
+                speak(x["result"])
 
         elif (intent == "get_schedule"):
-            d = first_entity(response['entities'], 'weekday')
+            day = first_entity(response['entities'], 'weekday')
             time = first_entity(response['entities'], 'time')
-            print(d)
+            print(day)
             print(time)
+
 
             # Connect database
             config = {
@@ -428,19 +424,54 @@ def mainroot():
             else:
                 cursor = conn.cursor()
 
-            cursor.execute("SELECT * FROM class where weekday="+ "'" + d+ "'")
-            myresult = cursor.fetchall()
-            print(myresult)
-            print(myresult[0])
-            if(myresult[0][1] == ""):
-                speak("You don't have class on " + d)
-            for row in myresult:
-                day = row[1]
-                start = row[2]
-                end = row[3]
-                course = row[4]
+            if(day != None and time != None):
+                if "pm" in time or "am" in time:
+                    in_time = datetime.datetime.strptime(time, "%I:%M %p")
+                    out_time = datetime.datetime.strftime(in_time, "%H:%M")
+                    print(out_time)
+
+                    cursor.execute("SELECT * FROM class where weekday="+ "'" + day + "' and start_time="+ "'" + out_time + "'" )
+                    myresult = cursor.fetchall()
+                    for row in myresult:
+                        weekday = row[1]
+                        start = row[2]
+                        end = row[3]
+                        course = row[4]
+                        speak("You have " + course + " class on " + weekday + " at " + start +" to " + end)
                 
-                speak("You have " + course + " class on " + day + " at " + str(start))
+                if not myresult:
+                    speak("You don't have class on " + day + " at " + out_time + " but")
+                    cursor.execute("SELECT * FROM class where weekday="+ "'" + day + "'")
+                    myresult = cursor.fetchall()
+                    for row in myresult:
+                        weekday = row[1]
+                        start = row[2]
+                        end = row[3]
+                        course = row[4]
+                    speak("You have " + course + " class on " + weekday + " at " + start +" to " + end)
+            else:
+                if(day == None):
+                    today = datetime.date.today()
+                    day = today.strftime("%A")
+
+                if(day == "tomorrow"):
+                    tomorrow = datetime.date.today() + datetime.timedelta(days=1)
+                    day = tomorrow.strftime("%A")
+            
+            
+                cursor.execute("SELECT * FROM class where weekday="+ "'" + day + "'")
+                myresult = cursor.fetchall()
+                print(myresult)
+                #print(myresult[0])
+                if not myresult:
+                    speak("You don't have class on " + day)
+                for row in myresult:
+                    weekday = row[1]
+                    start = row[2]
+                    end = row[3]
+                    course = row[4]
+
+                    speak("You have " + course + " class on " + weekday + " at " + start +" to " + end)
 
         elif (intent == "HomeAutomation.QueryState"):
 
@@ -489,16 +520,11 @@ def mainroot():
             update_db(device=device, value=-1*value)
             speak("Turning down the {} by {} degrees".format(device, value))
         
+        elif (intent == "goodbye"):
+            speak("Take care")
+            exit()
+
     
     root.mainloop()
 
 mainloop()
-
-    #voice_data = 'turn the ac to 30 degree'#
-    #voice_data = 'decrease the ac by 10 degrees'
-    #voice_data = 'what is the room temperature'
-    #voice_data = 'what is weather?'
-    #voice_data = 'what class do i have on wednesday'
-    #response = ai(voice_data)
-    #Skills(response)
-
