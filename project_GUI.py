@@ -15,6 +15,10 @@ import sqlite3
 from tkinter import messagebox
 import webbrowser
 import tkinter as tk
+import sounddevice as sd
+import soundfile as sf
+from_language, to_languages = 'en-US', [ 'de', 'en', 'it', 'pt', 'zh-Hans' ]
+speech_key, service_region = "61b8a438ab6e4afa8d7496ab6982d4e3", "eastus"
 
 # Splash screen
 def splash():
@@ -112,14 +116,35 @@ def mainroot():
 
         #get string and make a audio file to be played
     def speak(audio_string):
-        engine = pyttsx3.init()
-        engine.say(audio_string)
-        print(f"Rocket: {audio_string}")
-        t.config(state = NORMAL)
-        Response4 = f"Rocket: {audio_string}\n"
-        t.insert(tk.END, Response4)
-        t.config(state = DISABLED)
-        engine.runAndWait()
+        speech_key, service_region = "61b8a438ab6e4afa8d7496ab6982d4e3", "eastus"
+        speech_config = speechsdk.SpeechConfig(subscription=speech_key, region=service_region)
+
+        # Creates a speech synthesizer using the default speaker as audio output.
+        speech_synthesizer = speechsdk.SpeechSynthesizer(speech_config=speech_config)
+
+        # Receives a text.
+        text = audio_string
+
+        # Synthesizes the received text to speech.
+        # The synthesized speech is expected to be heard on the speaker with this line executed.
+        result = speech_synthesizer.speak_text_async(text).get()
+
+        # Checks result.
+        if result.reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
+            print("Speech synthesized to speaker for text [{}]".format(text))
+            t.config(state = NORMAL)
+            Response4 = f"Rocket: {audio_string}\n"
+            t.insert(tk.END, Response4)
+            t.config(state = DISABLED)
+        elif result.reason == speechsdk.ResultReason.Canceled:
+            cancellation_details = result.cancellation_details
+            print("Speech synthesis canceled: {}".format(cancellation_details.reason))
+            if cancellation_details.reason == speechsdk.CancellationReason.Error:
+                if cancellation_details.error_details:
+                    print("Error details: {}".format(cancellation_details.error_details))
+            print("Did you update the subscription info?")
+        
+    
     
     # This is the section of code which creates buttons
     Button(root, text='Start', bg='#FFFACD', font=('arial', 12, 'normal'),command = start, padx = 10, pady = 5, relief = GROOVE).place(x=25, y=440)
@@ -346,6 +371,51 @@ def mainroot():
         p = "Right now in " + city_name + " the temperature is " + str(current_temperature) + " fahrenheit with " + weather_description + " higher " + str(max_temperature) + " degree and lower " + str(min_temperature) +" degree"
         return p
 
+
+    def translate_speech_to_text():
+        translation_config = speechsdk.translation.SpeechTranslationConfig(
+                subscription=speech_key, region=service_region)
+
+        translation_config.speech_recognition_language = from_language
+        for lang in to_languages:
+            translation_config.add_target_language(lang)
+
+        recognizer = speechsdk.translation.TranslationRecognizer(
+                translation_config=translation_config)
+        
+        print('Say something...')
+        result = recognizer.recognize_once()
+        synthesize_translations(result=result) 
+        play_translation(result=result)
+
+
+    def synthesize_translations(result):
+        language_to_voice_map = {
+            "de": "de-DE-KatjaNeural",
+            "en": "en-US-AriaNeural",
+            "it": "it-IT-ElsaNeural",
+            "pt": "pt-BR-FranciscaNeural",
+            "zh-Hans": "zh-CN-XiaoxiaoNeural"
+        }
+        print(f'Recognized: "{result.text}"')
+
+        for language in result.translations:
+            translation = result.translations[language]
+            print(f'Translated into "{language}": {translation}')
+
+            speech_config = speechsdk.SpeechConfig(subscription=speech_key, region=service_region)
+            speech_config.speech_synthesis_voice_name = language_to_voice_map.get(language)
+            
+            audio_config = speechsdk.audio.AudioOutputConfig(filename=f'{language}-translation.wav')
+            speech_synthesizer = speechsdk.SpeechSynthesizer(speech_config=speech_config, audio_config=audio_config)
+            speech_synthesizer.speak_text_async(translation).get()
+        
+
+    def play_translation(result):
+            filename = "zh-Hans-translation.wav"
+            data, fs = sf.read(filename, dtype='float32')  
+            sd.play(data, fs)
+            status = sd.wait() 
         
 
     def Skills(response):
@@ -377,7 +447,11 @@ def mainroot():
                 #entity = first_entity_resolved_value(response['entities'], 'wit$location:location')["name"]
                 speak(weather_API(entity))
         
-        
+        #translate
+        elif (intent == "get_translation"):
+            translate_speech_to_text()
+
+
         #
         elif (intent == "get_time"):
             strTime = datetime.datetime.now().strftime("%H:%M:%S")
@@ -523,6 +597,9 @@ def mainroot():
         elif (intent == "goodbye"):
             speak("Take care")
             exit()
+
+        elif (intent == None):
+            speak("I didn't understand that. Could you repeat the question?")
 
     
     root.mainloop()
