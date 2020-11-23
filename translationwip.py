@@ -476,20 +476,20 @@ def mainroot():
         
         #translate
         elif (intent == "get_translation"):
-            language = entity(response['entities'], 'languages')
-            print("print(entity)", language)
+            entity = first_entity(response['entities'], 'languages')
+            print("print(entity)", entity)
             translate_speech_to_text()
-            if (language == "chinese"):
+            if (entity == "chinese"):
                 play_translationzh()
-            elif (language == "arabic"):
+            elif (entity == "arabic"):
                 play_translationar()
-            elif (language == "french"):
+            elif (entity == "french"):
                 play_translationfr()
-            elif (language == "german"):
+            elif (entity == "german"):
                 play_translationde()
-            elif (language == "spanish"):
+            elif (entity == "spanish"):
                 play_translationes()
-            elif (language == "japanese"):
+            elif (entity == "japanese"):
                 play_translationja()
             else:
                 speak("I don't know that language")
