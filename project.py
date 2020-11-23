@@ -509,13 +509,14 @@ def Skills(response):
         speak("Turning down the {} by {} degrees".format(device, value))
 
 
-    elif (intent == None):
-        speak("I didn't understand that. Could you repeat the question?")
-
+    
 
     elif (intent == "goodbye"):
         speak("Ok, Take care")
         exit()
+    
+    else:
+        speak("I didn't understand that.")
 
     speak("Do you need any other help")
 
