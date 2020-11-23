@@ -451,6 +451,15 @@ def mainroot():
         elif (intent == "get_translation"):
             translate_speech_to_text()
 
+	elif (intent == "search")
+            speak("What do you want to search?")
+            response = ai(record_audio())
+            text = response["query"]
+            
+            speak("Here is what I find in google")
+            url = "http://www.google.com/search?btnG=1&q=%s"
+            search = text
+            webbrowser.open(url % search)
 
         #
         elif (intent == "get_time"):
